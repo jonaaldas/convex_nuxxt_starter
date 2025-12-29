@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.10.9",
+    "@convex-dev/resend": "^0.2.3",
     "@types/node": "^25.0.3",
     "@vueuse/core": "^14.1.0",
     "better-auth": "1.4.9",

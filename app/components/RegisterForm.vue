@@ -27,7 +27,7 @@ const handleRegister = async (e: Event) => {
     return;
   }
 
-  navigateTo('/');
+  navigateTo('/verification');
 };
 
 const handleGoogleSignUp = async () => {

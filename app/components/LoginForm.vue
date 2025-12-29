@@ -16,6 +16,7 @@ const handleLogin = async (e: Event) => {
   const { error: signInError } = await authClient.signIn.email({
     email: email.value,
     password: password.value,
+    callbackURL: `${window.location.origin}/`,
   });
 
   isLoading.value = false;
@@ -29,7 +30,7 @@ const handleLogin = async (e: Event) => {
     return;
   }
 
-  navigateTo('/');
+  navigateTo('/verification');
 };
 
 const handleGoogleLogin = async () => {
@@ -73,9 +74,9 @@ const props = defineProps<{
             <Field>
               <div class="flex items-center">
                 <FieldLabel for="password"> Password </FieldLabel>
-                <a href="#" class="ml-auto inline-block text-sm underline-offset-4 hover:underline">
+                <NuxtLink to="/forgot-password" class="ml-auto inline-block text-sm underline-offset-4 hover:underline">
                   Forgot your password?
-                </a>
+                </NuxtLink>
               </div>
               <Input id="password" v-model="password" type="password" required :disabled="isLoading" />
             </Field>
