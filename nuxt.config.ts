@@ -6,6 +6,9 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['convex-nuxt', 'shadcn-nuxt'],
   css: ['~/assets/css/tailwind.css'],
+  typescript: {
+    typeCheck: true,
+  },
   convex: {
     url: process.env.CONVEX_URL,
   },
