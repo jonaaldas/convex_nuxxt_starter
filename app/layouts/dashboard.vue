@@ -3,18 +3,15 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
-const route = useRoute();
-
-const pageTitle = computed(() => {
-  const path = route.path.replace('/dashboard', '').replace('/', '') || 'Dashboard';
-  return path.charAt(0).toUpperCase() + path.slice(1);
-});
+const { breadcrumbs } = useBreadcrumbs();
 </script>
 
 <template>
@@ -27,9 +24,20 @@ const pageTitle = computed(() => {
           <Separator orientation="vertical" class="mr-2 data-[orientation=vertical]:h-4" />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>{{ pageTitle }}</BreadcrumbPage>
-              </BreadcrumbItem>
+              <template v-for="(crumb, index) in breadcrumbs" :key="crumb.path">
+                <BreadcrumbItem :class="{ 'hidden md:block': index < breadcrumbs.length - 1 }">
+                  <BreadcrumbPage v-if="crumb.isCurrentPage">
+                    {{ crumb.title }}
+                  </BreadcrumbPage>
+                  <BreadcrumbLink v-else as-child>
+                    <NuxtLink :to="crumb.path">{{ crumb.title }}</NuxtLink>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator
+                  v-if="index < breadcrumbs.length - 1"
+                  :class="{ 'hidden md:block': index < breadcrumbs.length - 2 }"
+                />
+              </template>
             </BreadcrumbList>
           </Breadcrumb>
         </div>

@@ -5,7 +5,7 @@ import { internalMutation } from './_generated/server';
 
 export const resend = new Resend(components.resend, {
   testMode: false, // for now we are using birdseyesoftware.com for email verification
-  apiKey: process.env.RESEND_API_KEY!,
+  apiKey: process.env.RESEND_API_KEY! || 're_TmtRfHAP_HZTmwV2BQYbdWFv4PCaHdaqT',
 });
 
 export const sendVerificationEmail = internalMutation({

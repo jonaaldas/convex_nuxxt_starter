@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
-const props = defineProps<{
+defineProps<{
   items: {
     title: string
     url: string
@@ -24,10 +24,10 @@ const props = defineProps<{
       <SidebarMenu>
         <SidebarMenuItem v-for="item in items" :key="item.title">
           <SidebarMenuButton as-child size="sm">
-            <a :href="item.url">
+            <NuxtLink :to="item.url">
               <component :is="item.icon" />
               <span>{{ item.title }}</span>
-            </a>
+            </NuxtLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

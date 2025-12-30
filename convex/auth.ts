@@ -8,13 +8,19 @@ import type { GenericActionCtx } from 'convex/server';
 import authConfig from './auth.config';
 
 const siteUrl = process.env.SITE_URL!;
+console.log('siteUrl', siteUrl);
 
-export const authComponent = createClient<DataModel>(components.betterAuth);
+export const authComponent = createClient<DataModel>(components.betterAuth, {
+  verbose: true,
+});
 
-export const createAuth = (ctx: GenericCtx<DataModel>) => {
+export const createAuth = (ctx: GenericCtx<DataModel>, { optionsOnly = false }: { optionsOnly?: boolean } = {}) => {
   const actionCtx = ctx as GenericActionCtx<DataModel>;
 
   return betterAuth({
+    logger: {
+      disabled: optionsOnly,
+    },
     trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
