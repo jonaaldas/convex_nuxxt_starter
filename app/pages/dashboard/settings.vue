@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { authClient } from '@/src/lib/auth-client';
 definePageMeta({
   layout: 'dashboard',
   middleware: 'auth',
 });
-const session = authClient.useSession();
-console.log(session.value.data);
+
+const { user, userDisplayName } = useAuthStore();
 </script>
 
 <template>
-  <div class="flex flex-1 items-center justify-center">
+  <div class="flex flex-1 flex-col items-center justify-center gap-4">
     <div class="text-lg">Settings</div>
+    <div v-if="user" class="text-sm text-muted-foreground">
+      Logged in as {{ userDisplayName }}
+    </div>
   </div>
 </template>

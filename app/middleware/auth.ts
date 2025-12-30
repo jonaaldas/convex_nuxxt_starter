@@ -1,9 +1,13 @@
-import { authClient } from '@/src/lib/auth-client';
-export default defineNuxtRouteMiddleware(async (to, from) => {
-  const { data: session } = await authClient.getSession();
-  if (!session?.user) {
-    if (to.path === '/dashboard') {
-      return navigateTo('/');
-    }
+import { until } from '@vueuse/core';
+
+export default defineNuxtRouteMiddleware(async (to) => {
+  const { isAuthenticated, isPending } = useAuthStore();
+
+  if (isPending.value) {
+    await until(isPending).toBe(false);
+  }
+
+  if (!isAuthenticated.value && to.path.startsWith('/dashboard')) {
+    return navigateTo('/');
   }
 });

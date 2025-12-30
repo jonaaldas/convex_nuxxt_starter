@@ -32,12 +32,16 @@ const props = withDefaults(defineProps<SidebarProps>(), {
   variant: 'inset',
 });
 
+const { userDisplayName, userAvatar, userInitials, user } = useAuthStore();
+
+const sidebarUser = computed(() => ({
+  name: userDisplayName.value,
+  email: user.value?.email || '',
+  avatar: userAvatar.value,
+  initials: userInitials.value,
+}));
+
 const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: 'https://github.com/shadcn.png',
-  },
   navMain: [
     {
       title: 'Playground',
@@ -184,7 +188,7 @@ const data = {
       <NavSecondary :items="data.navSecondary" class="mt-auto" />
     </SidebarContent>
     <SidebarFooter>
-      <NavUser :user="data.user" />
+      <NavUser :user="sidebarUser" />
     </SidebarFooter>
   </Sidebar>
 </template>
