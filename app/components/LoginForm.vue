@@ -16,7 +16,7 @@ const handleLogin = async (e: Event) => {
   const { error: signInError } = await authClient.signIn.email({
     email: email.value,
     password: password.value,
-    callbackURL: `${window.location.origin}/`,
+    callbackURL: `${window.location.origin}/dashboard`,
   });
 
   isLoading.value = false;

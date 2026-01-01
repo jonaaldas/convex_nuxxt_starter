@@ -20,6 +20,10 @@ export function useAuthStore() {
   const isPending = computed(() => session.value.isPending);
   const error = computed(() => session.value.error);
 
+  const activeSubscriptions = computed(() => session.value.data?.activeSubscriptions ?? []);
+  const grantedBenefits = computed(() => session.value.data?.grantedBenefits ?? []);
+  const hasActiveSubscription = computed(() => session.value.data?.hasActiveSubscription ?? false);
+
   const userInitials = computed(() => {
     const email = user.value?.email;
     if (!email) return '';
@@ -54,5 +58,8 @@ export function useAuthStore() {
     userAvatar,
     signOut,
     refreshSession,
+    activeSubscriptions,
+    grantedBenefits,
+    hasActiveSubscription,
   };
 }

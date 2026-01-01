@@ -9,9 +9,9 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as cache_redis from "../cache/redis.js";
 import type * as email from "../email.js";
 import type * as http from "../http.js";
-import type * as types_subscription_created from "../types/subscription_created.js";
 
 import type {
   ApiFromModules,
@@ -21,9 +21,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  "cache/redis": typeof cache_redis;
   email: typeof email;
   http: typeof http;
-  "types/subscription_created": typeof types_subscription_created;
 }>;
 
 /**
