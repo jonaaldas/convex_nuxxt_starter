@@ -6,6 +6,13 @@ definePageMeta({
   middleware: 'auth',
 });
 
+const { checkAndFireConfetti } = useConfetti();
+
+// Check if we should fire confetti (coming from successful payment)
+onMounted(() => {
+  checkAndFireConfetti();
+});
+
 const {
   session,
   user,

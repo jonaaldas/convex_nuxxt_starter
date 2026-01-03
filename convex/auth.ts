@@ -10,7 +10,7 @@ import { polar, checkout, portal, usage, webhooks } from '@polar-sh/better-auth'
 import { Polar } from '@polar-sh/sdk';
 import authConfig from './auth.config';
 import storage from './cache/redis';
-const siteUrl = process.env.SITE_URL!;
+const siteUrl = process.env.SITE_URL! || 'http://localhost:3000';
 
 export const authComponent = createClient<DataModel>(components.betterAuth, {
   verbose: true,
@@ -44,7 +44,7 @@ const authOptions = {
               slug: 'month',
             },
           ],
-          successUrl: '/success?checkout_id={CHECKOUT_ID}',
+          successUrl: `${siteUrl}/success?checkout_id={CHECKOUT_ID}`,
           authenticatedUsersOnly: true,
         }),
         portal(),
