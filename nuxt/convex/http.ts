@@ -1,33 +1,32 @@
-import { httpRouter } from 'convex/server';
-import { authComponent, createAuth } from './auth';
-import { httpAction } from './_generated/server';
-import { Webhook } from 'standardwebhooks';
-import { polarClient } from './auth';
-import storage from './cache/redis';
-import { registerPlaidRoutes } from './httpActions/plaid';
+import { httpRouter } from "convex/server";
+import { authComponent, createAuth } from "./auth";
+import { httpAction } from "./_generated/server";
+import { Webhook } from "standardwebhooks";
+import { polarClient } from "./auth";
+import storage from "./cache/redis";
+import { createLinkToken } from "./httpActions/plaid/createLinkToken";
+import { exchangePublicToken } from "./httpActions/plaid/exchangeToken";
 
 const http = httpRouter();
 
 authComponent.registerRoutes(http, createAuth, { cors: true });
 
-registerPlaidRoutes(http);
-
-const POLAR_WEBHOOK_SECRET = 'polar_whs_wvrd0RFOrNIytRVEE7S9avnsH9ZI8WdXr1L4837W6wP';
+const POLAR_WEBHOOK_SECRET = "polar_whs_wvrd0RFOrNIytRVEE7S9avnsH9ZI8WdXr1L4837W6wP";
 
 const ALLOWED_EVENTS = [
-  'customer.created',
-  'customer.updated',
-  'customer.deleted',
-  'customer.state_changed',
-  'subscription.created',
-  'subscription.updated',
-  'subscription.active',
-  'subscription.canceled',
-  'subscription.revoked',
-  'order.created',
-  'order.paid',
-  'checkout.created',
-  'checkout.updated',
+  "customer.created",
+  "customer.updated",
+  "customer.deleted",
+  "customer.state_changed",
+  "subscription.created",
+  "subscription.updated",
+  "subscription.active",
+  "subscription.canceled",
+  "subscription.revoked",
+  "order.created",
+  "order.paid",
+  "checkout.created",
+  "checkout.updated",
 ] as const;
 
 type AllowedEventType = (typeof ALLOWED_EVENTS)[number];
@@ -49,20 +48,20 @@ interface PolarWebhookPayload {
 function verifyWebhookSignature(
   payload: string,
   headers: {
-    'webhook-id': string | null;
-    'webhook-timestamp': string | null;
-    'webhook-signature': string | null;
+    "webhook-id": string | null;
+    "webhook-timestamp": string | null;
+    "webhook-signature": string | null;
   },
   secret: string
 ): PolarWebhookPayload {
   const {
-    'webhook-id': webhookId,
-    'webhook-timestamp': webhookTimestamp,
-    'webhook-signature': webhookSignature,
+    "webhook-id": webhookId,
+    "webhook-timestamp": webhookTimestamp,
+    "webhook-signature": webhookSignature,
   } = headers;
 
   if (!webhookId || !webhookTimestamp || !webhookSignature) {
-    throw new Error('[POLAR WEBHOOK] Missing required webhook headers');
+    throw new Error("[POLAR WEBHOOK] Missing required webhook headers");
   }
 
   // Standard Webhooks spec requires base64 encoded secret
@@ -70,26 +69,26 @@ function verifyWebhookSignature(
 
   try {
     return wh.verify(payload, {
-      'webhook-id': webhookId,
-      'webhook-timestamp': webhookTimestamp,
-      'webhook-signature': webhookSignature,
+      "webhook-id": webhookId,
+      "webhook-timestamp": webhookTimestamp,
+      "webhook-signature": webhookSignature,
     }) as PolarWebhookPayload;
   } catch (error) {
-    console.error('[POLAR WEBHOOK] Signature verification failed:', error);
-    throw new Error('[POLAR WEBHOOK] Invalid webhook signature');
+    console.error("[POLAR WEBHOOK] Signature verification failed:", error);
+    throw new Error("[POLAR WEBHOOK] Invalid webhook signature");
   }
 }
 
 function extractCustomerId(payload: PolarWebhookPayload): string | null {
-  if (payload.data.customer_id && typeof payload.data.customer_id === 'string') {
+  if (payload.data.customer_id && typeof payload.data.customer_id === "string") {
     return payload.data.customer_id;
   }
 
-  if (payload.data.customer?.id && typeof payload.data.customer.id === 'string') {
+  if (payload.data.customer?.id && typeof payload.data.customer.id === "string") {
     return payload.data.customer.id;
   }
 
-  if (payload.type.startsWith('customer.') && payload.data.id) {
+  if (payload.type.startsWith("customer.") && payload.data.id) {
     return payload.data.id;
   }
 
@@ -150,7 +149,7 @@ async function processWebhookEvent(payload: PolarWebhookPayload): Promise<void> 
 
   console.log(`[POLAR WEBHOOK] Processing ${eventType} for customer ${customerId}`);
 
-  if (eventType === 'customer.deleted') {
+  if (eventType === "customer.deleted") {
     await handleCustomerDeletion(customerId);
     return;
   }
@@ -159,15 +158,15 @@ async function processWebhookEvent(payload: PolarWebhookPayload): Promise<void> 
 }
 
 http.route({
-  path: '/polar/webhooks',
-  method: 'POST',
+  path: "/polar/webhooks",
+  method: "POST",
   handler: httpAction(async (_, request) => {
     const rawBody = await request.text();
 
     const headers = {
-      'webhook-id': request.headers.get('webhook-id'),
-      'webhook-timestamp': request.headers.get('webhook-timestamp'),
-      'webhook-signature': request.headers.get('webhook-signature'),
+      "webhook-id": request.headers.get("webhook-id"),
+      "webhook-timestamp": request.headers.get("webhook-timestamp"),
+      "webhook-signature": request.headers.get("webhook-signature"),
     };
 
     try {
@@ -177,22 +176,34 @@ http.route({
       try {
         await processWebhookEvent(payload);
       } catch (processingError) {
-        console.error('[POLAR WEBHOOK] Error processing event:', processingError);
+        console.error("[POLAR WEBHOOK] Error processing event:", processingError);
       }
 
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      console.error('[POLAR WEBHOOK] Webhook verification failed:', error);
+      console.error("[POLAR WEBHOOK] Webhook verification failed:", error);
 
-      return new Response(JSON.stringify({ error: 'Invalid webhook signature' }), {
+      return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       });
     }
   }),
+});
+
+http.route({
+  path: "/plaid/create-link-token",
+  method: "POST",
+  handler: createLinkToken,
+});
+
+http.route({
+  path: "/plaid/exchange-public-token",
+  method: "POST",
+  handler: exchangePublicToken,
 });
 
 export default http;
