@@ -4,10 +4,13 @@ import { httpAction } from './_generated/server';
 import { Webhook } from 'standardwebhooks';
 import { polarClient } from './auth';
 import storage from './cache/redis';
+import { registerPlaidRoutes } from './httpActions/plaid';
 
 const http = httpRouter();
 
 authComponent.registerRoutes(http, createAuth, { cors: true });
+
+registerPlaidRoutes(http);
 
 const POLAR_WEBHOOK_SECRET = 'polar_whs_wvrd0RFOrNIytRVEE7S9avnsH9ZI8WdXr1L4837W6wP';
 
