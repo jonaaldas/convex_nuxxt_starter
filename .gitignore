@@ -1,0 +1,13 @@
+node_modules
+.env
+.env.*
+!.env.example
+.nuxt
+.output
+.data
+.cache
+.nitro
+.dist
+.build
+.public
+.static
