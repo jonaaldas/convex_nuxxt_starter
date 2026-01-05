@@ -17,7 +17,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 });
 
 export const polarClient = new Polar({
-  accessToken: 'polar_oat_CIi5S5FWrSEJNVDLsMGcLzx9WE9ADzV9cqyjb1oi9sh',
+  accessToken: process.env.POLAR_ACCESS_TOKEN,
   server: 'sandbox',
 });
 
