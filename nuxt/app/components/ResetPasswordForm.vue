@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
-import { authClient } from '../src/lib/auth-client';
+import { useAuthClient } from '@/composables/auth';
+const authClient = useAuthClient();
 
 const route = useRoute();
 const token = computed(() => (route.query.token as string) || '');

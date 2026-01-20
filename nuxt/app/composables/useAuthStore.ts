@@ -1,4 +1,4 @@
-import { authClient } from '@/src/lib/auth-client';
+import { useAuthClient } from '@/composables/auth';
 
 export function getInitialsFromEmail(email: string): string {
   const username = email.split('@')[0] ?? '';
@@ -13,6 +13,7 @@ export function getInitialsFromEmail(email: string): string {
 }
 
 export function useAuthStore() {
+  const authClient = useAuthClient();
   const session = authClient.useSession();
 
   const user = computed(() => session.value.data?.user ?? null);

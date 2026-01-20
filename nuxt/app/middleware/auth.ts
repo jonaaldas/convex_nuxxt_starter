@@ -1,10 +1,16 @@
-import { until } from '@vueuse/core';
-
 export default defineNuxtRouteMiddleware(async (to) => {
   const { isAuthenticated, isPending } = useAuthStore();
 
+  // Wait for auth state to be resolved
   if (isPending.value) {
-    await until(isPending).toBe(false);
+    await new Promise<void>((resolve) => {
+      const unwatch = watch(isPending, (val) => {
+        if (!val) {
+          unwatch();
+          resolve();
+        }
+      }, { immediate: true });
+    });
   }
 
   if (!isAuthenticated.value && to.path.startsWith('/dashboard')) {

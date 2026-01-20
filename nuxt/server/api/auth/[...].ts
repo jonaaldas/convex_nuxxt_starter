@@ -2,6 +2,7 @@ export default defineEventHandler(async (event) => {
   const convexSiteUrl = process.env.CONVEX_SITE_URL;
 
   if (!convexSiteUrl) {
+    console.error('[Auth Proxy] CONVEX_SITE_URL is not set');
     throw createError({
       statusCode: 500,
       message: 'CONVEX_SITE_URL environment variable is not set',
@@ -11,31 +12,46 @@ export default defineEventHandler(async (event) => {
   const requestUrl = getRequestURL(event);
   const targetUrl = `${convexSiteUrl}${requestUrl.pathname}${requestUrl.search}`;
 
-  // Build headers from incoming request
+  // Build headers - exclude problematic ones
   const incomingHeaders = getHeaders(event);
   const headers = new Headers();
   for (const [key, value] of Object.entries(incomingHeaders)) {
-    if (value) headers.set(key, value);
+    const lowerKey = key.toLowerCase();
+    // Skip headers that cause issues
+    if (value && !['host', 'connection', 'content-length'].includes(lowerKey)) {
+      headers.set(key, value);
+    }
   }
-  headers.set('accept-encoding', 'application/json');
   headers.set('host', new URL(convexSiteUrl).host);
+
+  const body = event.method !== 'GET' && event.method !== 'HEAD'
+    ? await readRawBody(event)
+    : undefined;
 
   const response = await fetch(targetUrl, {
     method: event.method,
     headers,
-    body: event.method !== 'GET' && event.method !== 'HEAD' ? await readRawBody(event) : undefined,
+    body,
     redirect: 'manual',
   });
 
-  // Forward status and headers from the Convex response
+  // Forward status
   setResponseStatus(event, response.status);
 
+  // Forward response headers
   for (const [key, value] of response.headers.entries()) {
-    // Skip certain headers that shouldn't be forwarded
-    if (!['content-encoding', 'transfer-encoding', 'content-length'].includes(key.toLowerCase())) {
+    const lowerKey = key.toLowerCase();
+    if (!['content-encoding', 'transfer-encoding', 'content-length'].includes(lowerKey)) {
       setResponseHeader(event, key, value);
     }
   }
 
-  return response.body;
+  // Return response body as text/json
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 });

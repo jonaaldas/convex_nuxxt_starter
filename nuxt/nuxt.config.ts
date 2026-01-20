@@ -12,6 +12,11 @@ export default defineNuxtConfig({
   convex: {
     url: process.env.CONVEX_URL,
   },
+   runtimeConfig: {
+    public: {
+      siteUrl: process.env.SITE_URL || 'http://localhost:3000',
+    },
+  },
   vite: {
     plugins: [tailwindcss()],
     server: {

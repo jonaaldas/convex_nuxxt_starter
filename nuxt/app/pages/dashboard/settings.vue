@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { authClient } from '~/src/lib/auth-client';
+import { useAuthClient } from '@/composables/auth';
+
+const authClient = useAuthClient();
 
 definePageMeta({
   layout: 'dashboard',
@@ -76,7 +78,8 @@ const upgrade = async () => {
 
       <div class="space-y-2">
         <div class="text-sm text-muted-foreground">session (full):</div>
-        <pre class="max-h-64 overflow-auto rounded bg-muted p-2 text-xs">{{ JSON.stringify(session.data, null, 2) }}</pre>
+        <pre
+          class="max-h-64 overflow-auto rounded bg-muted p-2 text-xs">{{ JSON.stringify(session.data, null, 2) }}</pre>
       </div>
 
       <div class="space-y-2">

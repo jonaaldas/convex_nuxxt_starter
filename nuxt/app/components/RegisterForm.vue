@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
-import { authClient } from '../src/lib/auth-client';
+import { useAuthClient } from '@/composables/auth';
+
+const authClient = useAuthClient();
 
 const name = ref('');
 const email = ref('');
@@ -59,25 +61,12 @@ const props = defineProps<{
             </Field>
             <Field>
               <FieldLabel for="name"> Name </FieldLabel>
-              <Input
-                id="name"
-                v-model="name"
-                type="text"
-                placeholder="John Doe"
-                required
-                :disabled="isLoading"
-              />
+              <Input id="name" v-model="name" type="text" placeholder="John Doe" required :disabled="isLoading" />
             </Field>
             <Field>
               <FieldLabel for="email"> Email </FieldLabel>
-              <Input
-                id="email"
-                v-model="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                :disabled="isLoading"
-              />
+              <Input id="email" v-model="email" type="email" placeholder="m@example.com" required
+                :disabled="isLoading" />
             </Field>
             <Field>
               <FieldLabel for="password"> Password </FieldLabel>

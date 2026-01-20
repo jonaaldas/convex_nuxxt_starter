@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { PricingConfig, PricingPlan } from './types';
-import { authClient } from '@/src/lib/auth-client';
+import { useAuthClient } from '@/composables/auth';
 import { toast } from 'vue-sonner';
+
+const authClient = useAuthClient();
 
 const props = withDefaults(
   defineProps<{
@@ -81,13 +83,8 @@ async function handleSelectPlan(plan: PricingPlan) {
       </div>
 
       <div :class="['grid gap-6', gridCols]">
-        <PricingCard
-          v-for="plan in config.plans"
-          :key="plan.id"
-          :plan="plan"
-          :loading="loading === plan.id"
-          @select="handleSelectPlan"
-        />
+        <PricingCard v-for="plan in config.plans" :key="plan.id" :plan="plan" :loading="loading === plan.id"
+          @select="handleSelectPlan" />
       </div>
     </div>
   </section>

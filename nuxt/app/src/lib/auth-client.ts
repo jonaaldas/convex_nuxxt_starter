@@ -4,7 +4,15 @@ import { polarClient } from '@polar-sh/better-auth/client';
 import { customSessionClient } from 'better-auth/client/plugins';
 import type { Auth } from '../../../convex/auth';
 
-export const authClient = createAuthClient({
-  baseURL: process.env.CONVEX_SITE_URL,
-  plugins: [convexClient(), crossDomainClient(), polarClient(), customSessionClient<Auth>()],
-});
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _authClient: any = null;
+
+export function getAuthClient(baseURL: string) {
+  if (!_authClient) {
+    _authClient = createAuthClient({
+      baseURL,
+      plugins: [convexClient(), crossDomainClient(), polarClient(), customSessionClient<Auth>()],
+    });
+  }
+  return _authClient;
+}
