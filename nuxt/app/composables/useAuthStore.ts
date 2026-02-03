@@ -12,9 +12,26 @@ export function getInitialsFromEmail(email: string): string {
   return username.slice(0, 2).toUpperCase();
 }
 
+// Singleton session ref - only on client to avoid SSR cross-request leakage
+let _session: ReturnType<ReturnType<typeof useAuthClient>['useSession']> | null = null;
+
+function getSession() {
+  const authClient = useAuthClient();
+
+  if (import.meta.client) {
+    if (!_session) {
+      _session = authClient.useSession();
+    }
+    return _session;
+  }
+
+  // On server, always create a fresh session ref per request
+  return authClient.useSession();
+}
+
 export function useAuthStore() {
   const authClient = useAuthClient();
-  const session = authClient.useSession();
+  const session = getSession();
 
   const user = computed(() => session.value.data?.user ?? null);
   const isAuthenticated = computed(() => !!session.value.data?.user);
@@ -24,6 +41,7 @@ export function useAuthStore() {
   const activeSubscriptions = computed(() => session.value.data?.activeSubscriptions ?? []);
   const grantedBenefits = computed(() => session.value.data?.grantedBenefits ?? []);
   const hasActiveSubscription = computed(() => session.value.data?.hasActiveSubscription ?? false);
+  const isLaunchPrice = computed(() => session.value.data?.isLaunchPrice ?? false);
 
   const userInitials = computed(() => {
     const email = user.value?.email;
@@ -38,6 +56,9 @@ export function useAuthStore() {
   const userAvatar = computed(() => {
     return user.value?.image || '';
   });
+
+  const role = computed(() => (session.value.data as any)?.role ?? 'user');
+  const isAdmin = computed(() => role.value === 'admin');
 
   async function signOut() {
     await authClient.signOut();
@@ -62,5 +83,8 @@ export function useAuthStore() {
     activeSubscriptions,
     grantedBenefits,
     hasActiveSubscription,
+    isLaunchPrice,
+    role,
+    isAdmin,
   };
 }

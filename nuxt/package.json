@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.981.0",
     "@convex-dev/better-auth": "^0.10.9",
     "@convex-dev/resend": "^0.2.3",
     "@polar-sh/better-auth": "^1.6.3",

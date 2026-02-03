@@ -15,6 +15,7 @@ export default defineNuxtConfig({
    runtimeConfig: {
     public: {
       siteUrl: process.env.SITE_URL || 'http://localhost:3000',
+      convexSiteUrl: process.env.CONVEX_SITE_URL,
     },
   },
   vite: {

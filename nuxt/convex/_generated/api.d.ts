@@ -11,10 +11,14 @@
 import type * as auth from "../auth.js";
 import type * as cache_redis from "../cache/redis.js";
 import type * as email from "../email.js";
+import type * as emailActions from "../emailActions.js";
 import type * as http from "../http.js";
 import type * as httpActions_plaid_client from "../httpActions/plaid/client.js";
 import type * as httpActions_plaid_createLinkToken from "../httpActions/plaid/createLinkToken.js";
 import type * as httpActions_plaid_exchangeToken from "../httpActions/plaid/exchangeToken.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as lib_ses from "../lib/ses.js";
+import type * as subscriptions from "../subscriptions.js";
 
 import type {
   ApiFromModules,
@@ -26,10 +30,14 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "cache/redis": typeof cache_redis;
   email: typeof email;
+  emailActions: typeof emailActions;
   http: typeof http;
   "httpActions/plaid/client": typeof httpActions_plaid_client;
   "httpActions/plaid/createLinkToken": typeof httpActions_plaid_createLinkToken;
   "httpActions/plaid/exchangeToken": typeof httpActions_plaid_exchangeToken;
+  "lib/auth": typeof lib_auth;
+  "lib/ses": typeof lib_ses;
+  subscriptions: typeof subscriptions;
 }>;
 
 /**

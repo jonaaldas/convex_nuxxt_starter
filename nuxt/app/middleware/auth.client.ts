@@ -1,5 +1,5 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  const { isAuthenticated, isPending } = useAuthStore();
+  const { isAuthenticated, isPending, hasActiveSubscription } = useAuthStore();
 
   // Wait for auth state to be resolved
   if (isPending.value) {

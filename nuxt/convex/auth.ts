@@ -4,13 +4,17 @@ import { components, internal } from './_generated/api';
 import type { DataModel } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
-import { customSession } from 'better-auth/plugins';
+import { admin, customSession } from 'better-auth/plugins';
 import type { GenericActionCtx } from 'convex/server';
 import { polar, checkout, portal, usage, webhooks } from '@polar-sh/better-auth';
 import { Polar } from '@polar-sh/sdk';
 import authConfig from './auth.config';
-import storage from './cache/redis';
 const siteUrl = process.env.SITE_URL! || 'http://localhost:3000';
+const convexSiteUrl = process.env.CONVEX_SITE_URL!;
+
+const POLAR_WEBHOOK_SECRET = process.env.POLAR_WEBHOOK_SECRET!;
+const LAUNCH_PRODUCT_ID = process.env.LAUNCH_PRODUCT_ID!;
+const ADMIN_USER_IDS = ["k572tp2b2b215p0tr3zw4vynkd800gdh", "k573qcxcyfk9e61sbb5h46872n7zzz2g"]; // production, development admin users
 
 export const authComponent = createClient<DataModel>(components.betterAuth, {
   verbose: true,
@@ -18,56 +22,25 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 
 export const polarClient = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN,
-  server: 'sandbox',
+  server: process.env.POLAR_SERVER! as 'production' | 'sandbox' ,
 });
 
 const authOptions = {
-  trustedOrigins: [siteUrl],
+  baseURL: `${convexSiteUrl}/api/auth`,
+  trustedOrigins: [siteUrl, convexSiteUrl],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
   },
   plugins: [
     crossDomain({ siteUrl }),
-    polar({
-      client: polarClient,
-      createCustomerOnSignUp: true,
-      use: [
-        checkout({
-          products: [
-            {
-              productId: '82c8647b-93d7-4655-acd6-285a011ab7d8',
-              slug: 'year',
-            },
-            {
-              productId: '47cea88f-50a6-4e3b-8f15-694dd646e3d1',
-              slug: 'month',
-            },
-          ],
-          successUrl: `${siteUrl}/success?checkout_id={CHECKOUT_ID}`,
-          authenticatedUsersOnly: true,
-        }),
-        portal(),
-        usage(),
-        webhooks({
-          secret: 'polar_whs_wvrd0RFOrNIytRVEE7S9avnsH9ZI8WdXr1L4837W6wP',
-          onCustomerStateChanged: async (payload) => {
-            console.log('Customer state changed', payload);
-          },
-          onOrderPaid: async (payload) => {
-            console.log('Order paid', payload);
-          },
-          onPayload: async (payload) => {
-            await storage.setItem(payload.type, payload);
-          },
-        }),
-      ],
-    }),
   ],
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      // OAuth callback goes directly to Convex, not through the proxy
+      redirectURI: `${convexSiteUrl}/api/auth/callback/google`,
     },
   },
 } satisfies BetterAuthOptions;
@@ -81,7 +54,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>, { optionsOnly = false }: 
     emailAndPassword: {
       ...authOptions.emailAndPassword,
       sendResetPassword: async ({ user, url }) => {
-        await actionCtx.runMutation(internal.email.sendPasswordResetEmail, {
+        await actionCtx.runAction(internal.emailActions.sendPasswordResetEmail, {
           to: user.email,
           url,
           userName: user.name,
@@ -90,53 +63,166 @@ export const createAuth = (ctx: GenericCtx<DataModel>, { optionsOnly = false }: 
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
-        await actionCtx.runMutation(internal.email.sendVerificationEmail, {
+        await actionCtx.runAction(internal.emailActions.sendVerificationEmail, {
           to: user.email,
           url,
           userName: user.name,
         });
       },
+      sendOnSignUp: true,
+      autoSignInAfterVerification: false,
+      callbackURL: `${siteUrl}/login`,
     },
     plugins: [
       ...(authOptions.plugins ?? []),
+      admin({ adminUserIds: ADMIN_USER_IDS }),
+      polar({
+        client: polarClient,
+        createCustomerOnSignUp: true,
+        use: [
+          checkout({
+            products: [
+              {
+                productId: LAUNCH_PRODUCT_ID,
+                slug: 'launch',
+              },
+            ],
+            successUrl: `${siteUrl}/success?checkout_id={CHECKOUT_ID}`,
+            authenticatedUsersOnly: true,
+          }),
+          portal(),
+          usage(),
+          webhooks({
+            secret: POLAR_WEBHOOK_SECRET,
+            onCustomerStateChanged: async (payload) => {
+              try {
+                const { id: customerId, email, activeSubscriptions } = payload.data;
+                if (!email) {
+                  console.error(`[POLAR WEBHOOK] No email for customer ${customerId}`);
+                  return;
+                }
+                const isPaid = activeSubscriptions.length > 0;
+                const isLaunchPrice = activeSubscriptions.some(
+                  (sub: any) => sub.productId === LAUNCH_PRODUCT_ID,
+                );
+                await actionCtx.runMutation(internal.subscriptions.syncSubscriptionStatus, {
+                  email,
+                  polarCustomerId: customerId,
+                  isPaid,
+                  isLaunchPrice,
+                });
+                console.log(`[POLAR WEBHOOK] Synced: ${email} (paid=${isPaid}, launch=${isLaunchPrice})`);
+              } catch (error) {
+                console.error('[POLAR WEBHOOK] Failed to sync customer state:', error);
+              }
+            },
+            onCustomerDeleted: async (payload) => {
+              try {
+                const { id: customerId, email } = payload.data;
+                if (email) {
+                  await actionCtx.runMutation(internal.subscriptions.syncSubscriptionStatus, {
+                    email,
+                    polarCustomerId: customerId,
+                    isPaid: false,
+                    isLaunchPrice: false,
+                  });
+                  console.log(`[POLAR WEBHOOK] Customer deleted: ${email}`);
+                }
+              } catch (error) {
+                console.error('[POLAR WEBHOOK] Failed to handle deletion:', error);
+              }
+            },
+          }),
+        ],
+      }),
       convex({ authConfig }),
       customSession(async ({ user, session }) => {
+        const role = ADMIN_USER_IDS.includes(user.id) ? 'admin' as const : 'user' as const;
+
         try {
           const customers = await polarClient.customers.list({
             email: user.email,
             limit: 1,
           });
 
-          const customer = customers.result.items[0];
+          let customer = customers.result.items[0];
+
+          // Create Polar customer if doesn't exist (handles OAuth users who signed up before)
           if (!customer) {
-            return {
-              user,
-              session,
-              activeSubscriptions: [],
-              grantedBenefits: [],
-              hasActiveSubscription: false,
-            };
+            try {
+              customer = await polarClient.customers.create({
+                email: user.email,
+                name: user.name || undefined,
+                externalId: user.id,
+              });
+              console.log('[customSession] Created Polar customer for:', user.email);
+            } catch (createError) {
+              console.error('[customSession] Failed to create Polar customer:', createError);
+              return {
+                user,
+                session,
+                role,
+                activeSubscriptions: [],
+                grantedBenefits: [],
+                hasActiveSubscription: false,
+                isLaunchPrice: false,
+              };
+            }
+          } else if (customer.externalId !== user.id) {
+            // Ensure externalId is set — OAuth signups may not set it via createCustomerOnSignUp
+            try {
+              await polarClient.customers.update({
+                id: customer.id,
+                customerUpdate: {
+                  externalId: user.id,
+                },
+              });
+              console.log('[customSession] Linked Polar customer externalId for:', user.email);
+            } catch (updateError) {
+              console.error('[customSession] Failed to update externalId:', updateError);
+            }
           }
 
           const customerState = await polarClient.customers.getState({
             id: customer.id,
           });
 
+          const hasActiveSubscription = customerState.activeSubscriptions.length > 0;
+          const isLaunchPrice = customerState.activeSubscriptions.some(
+            (sub: any) => sub.productId === LAUNCH_PRODUCT_ID,
+          );
+
+          // Sync subscription status to Convex DB for future queries
+          try {
+            await actionCtx.runMutation(internal.subscriptions.syncSubscriptionStatus, {
+              email: user.email,
+              polarCustomerId: customer.id,
+              isPaid: hasActiveSubscription,
+              isLaunchPrice,
+            });
+          } catch (syncError) {
+            console.error('[customSession] Failed to sync subscription status:', syncError);
+          }
+
           return {
             user,
             session,
+            role,
             activeSubscriptions: customerState.activeSubscriptions,
             grantedBenefits: customerState.grantedBenefits,
-            hasActiveSubscription: customerState.activeSubscriptions.length > 0,
+            hasActiveSubscription,
+            isLaunchPrice,
           };
         } catch (error) {
           console.error('[customSession] Failed to fetch customer state:', error);
           return {
             user,
             session,
+            role,
             activeSubscriptions: [],
             grantedBenefits: [],
             hasActiveSubscription: false,
+            isLaunchPrice: false,
           };
         }
       }, authOptions),
