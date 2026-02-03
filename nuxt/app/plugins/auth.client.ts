@@ -34,7 +34,4 @@ export default defineNuxtPlugin(async () => {
     url.searchParams.delete('ott');
     window.history.replaceState({}, '', url.toString());
   }
-
-  // Initialize auth store after ott handling
-  useAuthStore();
 });

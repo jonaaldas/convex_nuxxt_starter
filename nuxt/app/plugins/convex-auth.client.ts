@@ -45,16 +45,27 @@ export default defineNuxtPlugin(() => {
     }
   };
 
-  // Re-authenticate when the session changes
+  // Watch for session changes, but only act when session transitions from pending to loaded
+  // or when session ID actually changes (login/logout)
   watch(
-    () => session.value?.data?.session?.id,
-    async (newSessionId, oldSessionId) => {
-      if (newSessionId && newSessionId !== oldSessionId && newSessionId !== lastSessionId) {
-        lastSessionId = newSessionId;
+    () => ({
+      isPending: session.value?.isPending,
+      sessionId: session.value?.data?.session?.id,
+    }),
+    async ({ isPending, sessionId }, oldValue) => {
+      // Skip while session is still loading
+      if (isPending) return;
+
+      // Skip if session ID hasn't changed
+      if (sessionId === lastSessionId) return;
+
+      if (sessionId) {
+        lastSessionId = sessionId;
         cachedToken = null;
         convexClient.setAuth(fetchToken);
         authSet = true;
-      } else if (!newSessionId && authSet) {
+      } else if (authSet) {
+        // User logged out
         cachedToken = null;
         lastSessionId = null;
         authSet = false;
